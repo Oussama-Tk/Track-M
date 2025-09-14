@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyTracker - Daily Expense Tracker</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/?size=100&id=113854&format=png&color=000000">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .expense-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .expense-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .pulse-button {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .category-icon {
+            transition: transform 0.2s ease;
+        }
+        
+        .category-icon:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2 slide-in">💰 MoneyTracker</h1>
+            <p class="text-white/80 text-lg slide-in">Track your daily expenses with style</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass-effect rounded-2xl p-6 text-white slide-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/70 text-sm">Today's Spending</p>
+                        <p class="text-2xl font-bold" id="todaySpending">$0.00</p>
+                    </div>
+                    <div class="text-3xl">📊</div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-6 text-white slide-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/70 text-sm">This Month</p>
+                        <p class="text-2xl font-bold" id="monthSpending">$0.00</p>
+                    </div>
+                    <div class="text-3xl">📅</div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-6 text-white slide-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/70 text-sm">Average Daily</p>
+                        <p class="text-2xl font-bold" id="avgDaily">$0.00</p>
+                    </div>
+                    <div class="text-3xl">📈</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Expense Form -->
+        <div class="glass-effect rounded-2xl p-6 mb-8 slide-in">
+            <h2 class="text-xl font-semibold text-white mb-4">Add New Expense</h2>
+            <form id="expenseForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="number" id="amount" placeholder="Amount ($)" step="0.01" required
+                       class="px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all">
+                
+                <select id="category" required
+                        class="px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all">
+                    <option value="">Select Category</option>
+                    <option value="food">🍔 Food</option>
+                    <option value="transport">🚗 Transport</option>
+                    <option value="shopping">🛍️ Shopping</option>
+                    <option value="entertainment">🎬 Entertainment</option>
+                    <option value="bills">💡 Bills</option>
+                    <option value="health">🏥 Health</option>
+                    <option value="other">📦 Other</option>
+                </select>
+                
+                <input type="text" id="description" placeholder="Description" required
+                       class="px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all">
+                
+                <button type="submit" 
+                        class="px-6 py-3 bg-white text-purple-600 rounded-xl font-semibold hover:bg-white/90 transition-all transform hover:scale-105 pulse-button">
+                    Add Expense
+                </button>
+            </form>
+        </div>
+
+        <!-- Chart and Recent Expenses -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Chart -->
+            <div class="glass-effect rounded-2xl p-6 slide-in">
+                <h3 class="text-xl font-semibold text-white mb-4">Spending by Category</h3>
+                <div class="relative h-64">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Expenses -->
+            <div class="glass-effect rounded-2xl p-6 slide-in">
+                <h3 class="text-xl font-semibold text-white mb-4">Recent Expenses</h3>
+                <div id="expenseList" class="space-y-3 max-h-64 overflow-y-auto">
+                    <div class="text-white/60 text-center py-8">
+                        No expenses yet. Add your first expense above! 🎯
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Breakdown -->
+        <div class="glass-effect rounded-2xl p-6 mt-8 slide-in">
+            <h3 class="text-xl font-semibold text-white mb-4">Daily Breakdown - <span id="currentMonth"></span></h3>
+            <div id="dailyBreakdown" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                <!-- Daily cards will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ExpenseTracker {
+            constructor() {
+                this.expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+                this.chart = null;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.updateStats();
+                this.renderExpenseList();
+                this.initChart();
+                this.renderDailyBreakdown();
+                this.updateCurrentMonth();
+            }
+
+            setupEventListeners() {
+                document.getElementById('expenseForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addExpense();
+                });
+            }
+
+            addExpense() {
+                const amount = parseFloat(document.getElementById('amount').value);
+                const category = document.getElementById('category').value;
+                const description = document.getElementById('description').value;
+
+                const expense = {
+                    id: Date.now(),
+                    amount,
+                    category,
+                    description,
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: new Date()
+                };
+
+                this.expenses.unshift(expense);
+                this.saveExpenses();
+                this.updateStats();
+                this.renderExpenseList();
+                this.updateChart();
+                this.renderDailyBreakdown();
+                
+                // Reset form
+                document.getElementById('expenseForm').reset();
+                
+                // Show success animation
+                this.showSuccessMessage();
+            }
+
+            showSuccessMessage() {
+                const button = document.querySelector('button[type="submit"]');
+                const originalText = button.textContent;
+                button.textContent = '✅ Added!';
+                button.classList.add('bg-green-500');
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('bg-green-500');
+                }, 1500);
+            }
+
+            updateStats() {
+                const today = new Date().toISOString().split('T')[0];
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+
+                const todayExpenses = this.expenses.filter(e => e.date === today);
+                const monthExpenses = this.expenses.filter(e => {
+                    const expenseDate = new Date(e.date);
+                    return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+                });
+
+                const todayTotal = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+                const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+                const avgDaily = monthExpenses.length > 0 ? monthTotal / new Date().getDate() : 0;
+
+                document.getElementById('todaySpending').textContent = `$${todayTotal.toFixed(2)}`;
+                document.getElementById('monthSpending').textContent = `$${monthTotal.toFixed(2)}`;
+                document.getElementById('avgDaily').textContent = `$${avgDaily.toFixed(2)}`;
+            }
+
+            renderExpenseList() {
+                const listContainer = document.getElementById('expenseList');
+                
+                if (this.expenses.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="text-white/60 text-center py-8">
+                            No expenses yet. Add your first expense above! 🎯
+                        </div>
+                    `;
+                    return;
+                }
+
+                const recentExpenses = this.expenses.slice(0, 5);
+                listContainer.innerHTML = recentExpenses.map(expense => `
+                    <div class="expense-card bg-white/5 rounded-xl p-4 border border-white/10 fade-in">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl category-icon">${this.getCategoryIcon(expense.category)}</span>
+                                <div>
+                                    <p class="text-white font-medium">${expense.description}</p>
+                                    <p class="text-white/60 text-sm">${expense.date}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-white font-bold">$${expense.amount.toFixed(2)}</p>
+                                <button onclick="expenseTracker.deleteExpense(${expense.id})" 
+                                        class="text-red-400 hover:text-red-300 text-sm transition-colors">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            deleteExpense(id) {
+                this.expenses = this.expenses.filter(e => e.id !== id);
+                this.saveExpenses();
+                this.updateStats();
+                this.renderExpenseList();
+                this.updateChart();
+                this.renderDailyBreakdown();
+            }
+
+            getCategoryIcon(category) {
+                const icons = {
+                    food: '🍔',
+                    transport: '🚗',
+                    shopping: '🛍️',
+                    entertainment: '🎬',
+                    bills: '💡',
+                    health: '🏥',
+                    other: '📦'
+                };
+                return icons[category] || '📦';
+            }
+
+            initChart() {
+                const ctx = document.getElementById('expenseChart').getContext('2d');
+                this.chart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: [
+                                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                                '#9966FF', '#FF9F40', '#FF6384'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: 'white',
+                                    padding: 20
+                                }
+                            }
+                        }
+                    }
+                });
+                this.updateChart();
+            }
+
+            updateChart() {
+                const categoryTotals = {};
+                this.expenses.forEach(expense => {
+                    categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + expense.amount;
+                });
+
+                const labels = Object.keys(categoryTotals);
+                const data = Object.values(categoryTotals);
+
+                this.chart.data.labels = labels.map(label => 
+                    label.charAt(0).toUpperCase() + label.slice(1)
+                );
+                this.chart.data.datasets[0].data = data;
+                this.chart.update();
+            }
+
+            renderDailyBreakdown() {
+                const container = document.getElementById('dailyBreakdown');
+                const today = new Date();
+                const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                
+                let html = '';
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayExpenses = this.expenses.filter(e => e.date === dateStr);
+                    const dayTotal = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+                    const isToday = day === today.getDate();
+                    
+                    html += `
+                        <div class="bg-white/5 rounded-xl p-3 text-center border border-white/10 transition-all hover:bg-white/10 ${isToday ? 'ring-2 ring-white/30' : ''}">
+                            <div class="text-white/60 text-sm">${day}</div>
+                            <div class="text-white font-semibold ${dayTotal > 0 ? 'text-lg' : 'text-sm'}">
+                                ${dayTotal > 0 ? `$${dayTotal.toFixed(0)}` : '-'}
+                            </div>
+                            ${dayExpenses.length > 0 ? `<div class="text-white/40 text-xs">${dayExpenses.length} items</div>` : ''}
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+            }
+
+            updateCurrentMonth() {
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+                const currentMonth = new Date().getMonth();
+                document.getElementById('currentMonth').textContent = monthNames[currentMonth];
+            }
+
+            saveExpenses() {
+                localStorage.setItem('expenses', JSON.stringify(this.expenses));
+            }
+        }
+
+        // Initialize the expense tracker
+        const expenseTracker = new ExpenseTracker();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97d9458532d2ec8b',t:'MTc1NzYxNTc5Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
